@@ -1,0 +1,111 @@
+
+<!doctype html>
+<html>
+<head>
+    <title>Encoder Decoder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <div>Text to decode or encode:</div>
+    <input id='text' type='text' autofocus placeholder="Text to decode or encode."/>
+    <div>Key String:</div>
+    <input id='oneTimePad' type='password' placeholder="Enter decoding phrase."/>
+    <div>Decoded:</div>
+    <input id='decodedOutput' type='text' readonly/>
+    <div>Encoded:</div>
+    <input id='encodedOutput' type='text' readonly/>
+    <div>Use only for numbers that are not recognized when they are decoded. 
+    <style>
+        input { width:100%}
+    </style>
+    <script>
+"use strict";
+
+// Take a single character 'digit' and offset it by the ASCII code
+// of another character named 'offset'. The offset is modulo by 10
+// so that numbers wrap around.
+// Non digit characters aren't modified.
+// If 'reverse' is true, then perform the operation in reverse
+// (when encoding new values). 
+function rotateDigitChar(digit, offset, reverse) {
+    const sign = (reverse) ? -1 : 1;
+    console.assert(digit.length == 1);
+    console.assert(offset.length == 1);
+    const digitAsInt = parseInt(digit);
+    if (isNaN(digitAsInt))
+        return digit; // Non digit characters aren't modified.
+    const signedOffset = sign * offset.charCodeAt(0);
+    const newInt = ((digitAsInt + signedOffset) % 10 + 10) % 10; // handle negative 
+    return newInt;
+}
+
+// Take an input string 'oldString' and rotate each numeral character 
+// by a corresponding character provided by the 'oneTimePad' string.
+// Non digit characters aren't modified.
+// If 'reverse' is true, then perform the operation in reverse
+// (when encoding new values). 
+function rotateString(oldString, oneTimePad, reverse) {
+    if (oneTimePad.length == 0)
+        return oldString;
+
+    // Offset index into the oneTimePad by a prime
+    // so that any length variation in the oneTimePad
+    // will cause a change to all of the decoded values
+    // (not just the portions at or after the oneTimePad.length). 
+    let oneTimePadOffset = 983;
+
+    let output = "";
+    for (let i=0; i < oldString.length; i++) {
+        output += rotateDigitChar(oldString.charAt(i),
+                              oneTimePad.charAt((i + oneTimePadOffset) % oneTimePad.length),
+                              reverse);
+    }
+    return output;
+}
+
+function updateOutputs() {
+    decodedOutput.value = rotateString(text.value, oneTimePad.value);
+    encodedOutput.value = rotateString(text.value, oneTimePad.value,
+        true /* reverse */);
+}
+
+oneTimePad.onchange = updateOutputs;
+oneTimePad.onkeyup = updateOutputs;
+text.onchange = updateOutputs;
+text.onkeyup = updateOutputs;
+
+updateOutputs();  // Produce a first time decoding
+
+// Tests
+// rotateDigitChar: basic rotation back and forth, over the 0 line
+console.assert(rotateDigitChar('0', 'a') == 7);
+console.assert(rotateDigitChar('7', 'a', true) == 0);
+
+// rotateDigitChar: Reverse
+console.assert(rotateDigitChar('9', 'a') == 6);
+console.assert(rotateDigitChar('6', 'a', true) == 9);
+
+// rotateDigitChar: Characters
+console.assert(rotateDigitChar('0', 'b') == 8);
+console.assert(rotateDigitChar('0', 'c') == 9);
+console.assert(rotateDigitChar('0', 'd') == 0);
+console.assert(rotateDigitChar('0', 'e') == 1);
+console.assert(rotateDigitChar('0', 'f') == 2);
+console.assert(rotateDigitChar('0', 'g') == 3);
+console.assert(rotateDigitChar('0', 'A') == 5);
+console.assert(rotateDigitChar('0', 'Z') == 0);
+console.assert(rotateDigitChar('0', ' ') == 2);
+console.assert(rotateDigitChar('0', '.') == 6);
+
+// rotateString: Basics: empty, identity one time pad, simple OTP, long OTP.
+console.assert(rotateString('', '') == '');
+console.assert(rotateString('0123456789', '2') == '0123456789');
+console.assert(rotateString('000000000', '123') == '190190190');
+console.assert(rotateString('0', 'longer one time pad') == 1);
+
+// rotateString: Reverse
+console.assert(rotateString('190190190', '123', true) == '000000000');
+
+    </script>
+</body>
+</html>
